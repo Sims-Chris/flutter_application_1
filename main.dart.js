@@ -85871,10 +85871,10 @@ ag(){return new A.F9()}}
 A.F9.prototype={
 adD(){this.aj(new A.aps(this))},
 K(a){var s,r=null,q=A.a1(a).ax,p=q.y2
-q=A.aAr(p==null?q.c:p,B.TQ)
+q=A.aAr(p==null?q.c:p,B.TS)
 p=A.hp(""+this.d,r,r,r,A.a1(a).ok.e,r,r)
 s=A.aM2(r,r,r,r,r,r,r,r,r,r,r,r,B.EG,r,r,r,r,r,B.RW,r)
-p=A.oo(A.rQ(A.c([B.TI,p,B.z8,new A.KB(!0,new A.apu(a),r,r,r,s,B.J,r,!1,r,!0,r,new A.SI(B.TS,B.Fn,s,r,r),r)],t.E),B.bs,B.kG,B.kH),r,r)
+p=A.oo(A.rQ(A.c([B.TI,p,B.z8,new A.KB(!0,new A.apu(a),r,r,r,s,B.J,r,!1,r,!0,r,new A.SI(B.TR,B.Fn,s,r,r),r)],t.E),B.bs,B.kG,B.kH),r,r)
 return A.aDq(q,p,B.yG,new A.KX(B.Fp,"Increment",this.gadC(),B.VJ,r))}}
 A.aps.prototype={
 $0(){var s=this.a
@@ -85980,7 +85980,7 @@ $S:530}
 A.aoS.prototype={
 $2(a,b){var s=this,r=s.b,q=t.E,p=A.rQ(A.c([A.ay4(s.c,B.FN,new A.aoK()),A.ay4(s.d,B.FM,new A.aoL()),B.Pc,B.TF,A.aej(A.a7u(5,new A.aoM(s.a,b),!0,t.l7),B.bs,B.aX,B.kH,0),B.Pd,A.ay4(s.e,B.FO,new A.aoN())],q),B.br,B.aX,B.bJ)
 p=A.aDA(new A.z0(p,B.j5,r))
-return A.awg(A.c([A.qo(B.TM,new A.aoO(a),null),A.qo(B.TK,new A.aoP(r,a),null)],q),p,B.TR)},
+return A.awg(A.c([A.qo(B.TM,new A.aoO(a),null),A.qo(B.TK,new A.aoP(r,a),null)],q),p,B.TQ)},
 $S:531}
 A.aoK.prototype={
 $1(a){var s=B.d.hH(a)
@@ -86009,8 +86009,7 @@ $S:0}
 A.aoN.prototype={
 $1(a){var s=B.d.hH(a)
 if(s.length===0)return"Please enter at least one tag"
-s=B.d.A(a,A.hS("[!@#\\$%^&*()]",!0,!1))
-if(s)return"Please do not use special characters in tags"
+if(B.d.A(a,A.hS("[!@#\\$%^&*()]",!0,!1)))return"Please do not use special characters in tags"
 return null},
 $S:118}
 A.aoO.prototype={
@@ -95608,9 +95607,9 @@ B.TL=new A.dn("Main",null,null,null,null,null,null,null,null)
 B.TM=new A.dn("Cancel",null,null,null,null,null,null,null,null)
 B.TN=new A.dn("I have!",null,null,null,null,null,null,null,null)
 B.TP=new A.dn("Have you visited this spot?",null,null,null,null,null,null,null,null)
-B.TQ=new A.dn("Home",null,null,null,null,null,null,null,null)
-B.TR=new A.dn("New Spot Details",null,null,null,null,null,null,null,null)
-B.TS=new A.dn("Open Map",null,null,null,null,null,null,null,null)
+B.TQ=new A.dn("New Spot Details",null,null,null,null,null,null,null,null)
+B.TR=new A.dn("Open Map",null,null,null,null,null,null,null,null)
+B.TS=new A.dn("Commit 16/08/26 15:50",null,null,null,null,null,null,null,null)
 B.TT=new A.dn("Open a new Spot Here?",null,null,null,null,null,null,null,null)
 B.TU=new A.dn("Yes",null,null,null,null,null,null,null,null)
 B.Xj=new A.aiL(0,"system")
