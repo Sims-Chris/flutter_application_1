@@ -195,7 +195,7 @@ class _MapScreenState extends State<MapScreen> {
 													if (value == null || value.trim().isEmpty){
 														return 'Please enter at least one tag';
 													}
-                                                    if (value != null && value.contains(RegExp(r'[!@#\$%^&*()]'))) {
+                                                    if (value.contains(RegExp(r'[!@#\$%^&*()]'))) {
                                                         return 'Please do not use special characters in tags';
                                                     }
                                                     return null;
