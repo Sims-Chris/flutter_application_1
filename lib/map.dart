@@ -11,7 +11,7 @@ class MapSpot {
 
 	final String name;
 	final String description;
-	final int rating;
+	final double rating;
 
 	final List<String> tags;
 
@@ -100,92 +100,209 @@ class _MapScreenState extends State<MapScreen> {
 		}
 	}
 
-	Future<void> _enterSpotDetails(LatLng point) async{
-		final nameController = TextEditingController();
-		final descriptionController = TextEditingController();
-		final ratingController = TextEditingController();
-		final tagsController = TextEditingController();
+	Future<void> _enterSpotDetails(LatLng point) async {
+        final formKey = GlobalKey<FormState>();
+        
+        final nameController = TextEditingController();
+        final descriptionController = TextEditingController();
+        final tagsController = TextEditingController();
+        
+        // Changed to a double to support .5 values
+        double selectedRating = 0.0; 
 
-		final bool? shouldSave = await showDialog<bool>(
+        final bool? shouldSave = await showDialog<bool>(
+            context: context, 
+            builder: (BuildContext context) {
+                return StatefulBuilder(
+                    builder: (context, setDialogState) {
+                        return AlertDialog(
+                            title: const Text("New Spot Details"),
+                            content: SingleChildScrollView(
+                                child: Form(
+                                    key: formKey,
+                                    child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                            TextFormField(
+                                                controller: nameController,
+                                                decoration: const InputDecoration(labelText: "Name*"),
+                                                validator: (value) {
+                                                    if (value == null || value.trim().isEmpty) {
+                                                        return 'Please enter a name';
+                                                    }
+                                                    return null;
+                                                },
+                                            ),
+                                            TextFormField(
+                                                controller: descriptionController,
+                                                decoration: const InputDecoration(labelText: "Description"),
+												validator: (value){
+													if (value == null || value.trim().isEmpty){
+														return 'Please enter a description';
+													}
+													return null;
+												}
+                                            ),
+                                            const SizedBox(height: 16),
+                                            
+                                            const Text("Rating", style: TextStyle(fontSize: 12, color: Colors.black54)),
+                                            Row(
+                                                mainAxisAlignment: MainAxisAlignment.start,
+                                                children: List.generate(5, (index) {
+                                                    // Determine which icon to show for this position
+                                                    IconData iconData;
+                                                    if (selectedRating >= index + 1.0) {
+                                                        iconData = Icons.star;
+                                                    } else if (selectedRating >= index + 0.5) {
+                                                        iconData = Icons.star_half;
+                                                    } else {
+                                                        iconData = Icons.star_border;
+                                                    }
+
+                                                    return GestureDetector(
+                                                        // Use onTapDown to get exactly where the user touched
+                                                        onTapDown: (TapDownDetails details) {
+                                                            setDialogState(() {
+                                                                // The icon is 36 pixels wide. If they tap the left half (< 18), 
+                                                                // it's a half star. Otherwise, it's a full star.
+                                                                if (details.localPosition.dx < 18) {
+                                                                    selectedRating = index + 0.5;
+                                                                } else {
+                                                                    selectedRating = index + 1.0;
+                                                                }
+                                                            });
+                                                        },
+                                                        child: Padding(
+                                                            // Add slight padding between stars for a better touch target
+                                                            padding: const EdgeInsets.only(right: 4.0),
+                                                            child: Icon(
+                                                                iconData,
+                                                                color: Colors.amber,
+                                                                size: 36,
+                                                            ),
+                                                        ),
+                                                    );
+                                                }),
+                                            ),
+                                           
+										    const SizedBox(height: 8),
+
+                                            TextFormField(
+                                                controller: tagsController,
+                                                decoration: const InputDecoration(labelText: "Tags (Comma separated)"),
+                                                validator: (value) {
+													if (value == null || value.trim().isEmpty){
+														return 'Please enter at least one tag';
+													}
+                                                    if (value != null && value.contains(RegExp(r'[!@#\$%^&*()]'))) {
+                                                        return 'Please do not use special characters in tags';
+                                                    }
+                                                    return null;
+                                                },
+                                            ),
+                                        ],
+                                    ),
+                                ),
+                            ),
+
+                            actions: [
+                                TextButton(
+                                    onPressed: () => Navigator.pop(context, false), 
+                                    child: const Text("Cancel"),
+                                ),
+                                TextButton(
+                                    onPressed: () {
+                                        if (formKey.currentState!.validate()) {
+                                            Navigator.pop(context, true);
+                                        }
+                                    },
+                                    child: const Text("Save"),
+                                 ),
+                            ],
+                        );
+                    }
+                );
+            },
+        );
+
+        if (shouldSave == true) {
+            setState(() {
+                final newId = DateTime.now().millisecondsSinceEpoch;
+
+                final List<String> parsedTags = tagsController.text
+                    .split(',')
+                    .map((tag) => tag.trim())
+                    .where((tag) => tag.isNotEmpty)
+                    .toList();
+
+                _spots.add(
+                    MapSpot(
+                        id: newId,
+                        point: point,
+                        name: nameController.text.trim(),
+                        description: descriptionController.text.trim(),
+                        rating: selectedRating, // Now passes the double value
+                        tags: parsedTags
+                    ),
+                );
+            });
+        }
+    }
+
+	Future<void> _openExistingSpot(MapSpot spot) async{
+
+		final bool? visitedSpot = await showDialog<bool>(
 			context: context, 
-			builder: (BuildContext context) {
+			builder: (BuildContext context){
 				return AlertDialog(
-					title: const Text("New Spot Details"),
+					title: Text(spot.name.isNotEmpty ? spot.name : "Unnamed Spot"),
+
 					content: SingleChildScrollView(
 						child: Column(
 							mainAxisSize: MainAxisSize.min,
-
-							children: [
-								TextField(
-									controller: nameController,
-									decoration: const InputDecoration(labelText: "Name"),
-								),
-								TextField(
-									controller: descriptionController,
-									decoration: const InputDecoration(labelText: "Description"),
-								),
-								TextField(
-									controller: ratingController,
-									decoration: const InputDecoration(labelText: "Rating 1-5"),
-								),
-								TextField(
-									controller: tagsController,
-									decoration: const InputDecoration(labelText: "Tags (Comma seperated)"),
-								),
-							],
+							crossAxisAlignment: CrossAxisAlignment.start,
+								children: [
+									Text("Description: ${spot.description}"),
+									const SizedBox(height: 10),
+									Text("Rating: ${spot.rating} / 5"),
+									const SizedBox(height: 10),
+									Text("Tags: ${spot.tags.join(', ')}"),
+									const SizedBox(height: 20),
+									const Text("Have you visited this spot?"),
+								],
 						),
 					),
 
 					actions: [
 						TextButton(
-							onPressed: () => Navigator.pop(context, false), 
-							child: const Text("Cancel"),
-							),
+							onPressed: () => Navigator.pop(context, false),
+						 	child: const Text("Not yet"),
+						),
 						TextButton(
 							onPressed: () => Navigator.pop(context, true),
-						 	child: const Text("Save"),
-						 ),
+							child: const Text("I have!")
+						),
 					],
 				);
-			},
+			}
 		);
 
-		if (shouldSave == true) {
-			setState(() {
-				final newId = DateTime.now().millisecondsSinceEpoch;
-
-				final int parsedRating = int.tryParse(ratingController.text) ?? 0; // Defaults to 0 if fails to parse
-
-				final List<String> parsedTags = tagsController.text
-					.split(',')
-					.map((tag) => tag.trim())
-					.where((tag) => tag.isNotEmpty)
-					.toList();
-
-				_spots.add(
-					MapSpot(id: newId,
-					 	point: point,
-						name: nameController.text,
-						description: descriptionController.text,
-						rating: parsedRating,
-					   	tags: parsedTags
-					),
-				);
-			});
+		if (visitedSpot == true) {
+			debugPrint("Visted Spot ${spot.name}");
 		}
-	}
 
+		else if (visitedSpot == false) {
+			debugPrint("Not visited spot ${spot.name}");
+		}
 
-	void _openExistingSpot(MapSpot spot){
-		debugPrint("Existing spot tapped, with ID: ${spot.id}");
-
-		ScaffoldMessenger.of(context).showSnackBar(
-			SnackBar(
-				content: Text("Opened spot: ${spot.id} \n ${spot.description}"),
-
-				duration: const Duration(seconds: 5),
-			),
-		);
+		// debugPrint("Existing spot tapped, with ID: ${spot.id}");
+		// ScaffoldMessenger.of(context).showSnackBar(
+		// 	SnackBar(
+		// 		content: Text("Opened spot: ${spot.id} \n ${spot.description}"),
+		// 		duration: const Duration(seconds: 5),
+		// 	),
+		// );
 	}
 
 	// Legacy add New Spot 
