@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "576379291163",
+    "project_id": "i-know-a-spot-11d2b",
+    "storage_bucket": "i-know-a-spot-11d2b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:576379291163:android:502a94fa395c1467a99abe",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGqUk0AM4c8uG9a8skHrVGy8quJpM5sng"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
