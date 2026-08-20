@@ -6,6 +6,10 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math' as math;
 
+// ===========================
+// Data Models
+// ===========================
+
 class MapSpot {
   final String id;
   final LatLng point;
@@ -62,7 +66,25 @@ class MapSpot {
       );
     }
   }
-} 
+}
+
+class _SpotFormData {
+  final String name;
+  final String description;
+  final double rating;
+  final List<String> tags;
+
+  _SpotFormData({
+    required this.name,
+    required this.description,
+    required this.rating,
+    required this.tags,
+  });
+}
+
+// ===========================
+// Map Screen
+// ===========================
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -75,6 +97,17 @@ class _MapScreenState extends State<MapScreen> {
   List<MapSpot> _spots = [];
   final MapController _mapController = MapController();
 
+  // Search Variables
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
+
+  @override
+  void dispose(){
+    _searchController.dispose();
+    _mapController.dispose();
+    super.dispose();
+  }
+  
   void _handleMapTap(TapPosition tapPosition, LatLng point) {
     debugPrint('Tapped Latitude: ${point.latitude}');
     debugPrint('Tapped Longitude: ${point.longitude}');
@@ -110,22 +143,7 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _confirmNewSpot(LatLng point) async {
     final bool? shouldCreate = await showDialog<bool>(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("New Spot"),
-          content: const Text("Open a new Spot Here?"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("No"),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text("Yes"),
-            ),
-          ],
-        );
-      },
+      builder: (BuildContext context) => const ConfirmNewSpotDialog(),
     );
 
     if (shouldCreate == true) {
@@ -134,194 +152,32 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _enterSpotDetails(LatLng point) async {
-    final formKey = GlobalKey<FormState>();
-
-    final nameController = TextEditingController();
-    final descriptionController = TextEditingController();
-    final tagsController = TextEditingController();
-
-    // Changed to a double to support .5 values
-    double selectedRating = 0.0;
-
-    final bool? shouldSave = await showDialog<bool>(
+    // Shows extracted dialog. Returns the cleaned _SpotFormData object
+    final _SpotFormData? formData = await showDialog<_SpotFormData>(
       context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text("New Spot Details"),
-              content: SingleChildScrollView(
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextFormField(
-                        controller: nameController,
-                        decoration: const InputDecoration(labelText: "Name*"),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter a name';
-                          }
-                          return null;
-                        },
-                      ),
-                      TextFormField(
-                        controller: descriptionController,
-                        decoration: const InputDecoration(
-                          labelText: "Description",
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter a description';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      const Text(
-                        "Rating",
-                        style: TextStyle(fontSize: 12, color: Colors.black54),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: List.generate(5, (index) {
-                          // Determine which icon to show for this position
-                          IconData iconData;
-                          if (selectedRating >= index + 1.0) {
-                            iconData = Icons.star;
-                          } else if (selectedRating >= index + 0.5) {
-                            iconData = Icons.star_half;
-                          } else {
-                            iconData = Icons.star_border;
-                          }
-
-                          return GestureDetector(
-                            // Use onTapDown to get exactly where the user touched
-                            onTapDown: (TapDownDetails details) {
-                              setDialogState(() {
-                                // The icon is 36 pixels wide. If they tap the left half (< 18),
-                                // it's a half star. Otherwise, it's a full star.
-                                if (details.localPosition.dx < 18) {
-                                  selectedRating = index + 0.5;
-                                } else {
-                                  selectedRating = index + 1.0;
-                                }
-                              });
-                            },
-                            child: Padding(
-                              // Add slight padding between stars for a better touch target
-                              padding: const EdgeInsets.only(right: 4.0),
-                              child: Icon(
-                                iconData,
-                                color: Colors.amber,
-                                size: 36,
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      TextFormField(
-                        controller: tagsController,
-                        decoration: const InputDecoration(
-                          labelText: "Tags (Comma separated)",
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter at least one tag';
-                          }
-                          if (value.contains(RegExp(r'[!@#\$%^&*()]'))) {
-                            return 'Please do not use special characters in tags';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text("Cancel"),
-                ),
-                TextButton(
-                  onPressed: () {
-                    if (formKey.currentState!.validate()) {
-                      Navigator.pop(context, true);
-                    }
-                  },
-                  child: const Text("Save"),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (BuildContext context) => const NewSpotFormDialog(),
     );
 
-    if (shouldSave == true) {
-        final List<String> parsedTags = tagsController.text
-            .split(',')
-            .map((tag) => tag.trim())
-            .where((tag) => tag.isNotEmpty)
-            .toList();
-
-        // Push to firestore safely without blocking the UI thread
-        await FirebaseFirestore.instance.collection("spots").add({
-          "title": nameController.text.trim(),
-          'description': descriptionController.text.trim(),
-          "location" : {
-            "type" : "Point",
-            "coordinates": [point.longitude, point.latitude] // GeoJSON Format
-          },
-          "rating": selectedRating,
-          "filters": parsedTags,
-          "createdAt": FieldValue.serverTimestamp(),
-        });
+    // If user has saved the form, not canceled then wont be null
+    if (formData != null){
+      await FirebaseFirestore.instance.collection("spots").add({
+        "title": formData.name,
+        'description': formData.description,
+        "location": {
+          "type": "Point",
+          "coordinates": [point.longitude, point.latitude] // in GeoJSON format
+        },
+        "rating": formData.rating,
+        "filters": formData.tags,
+        "createdAt": FieldValue.serverTimestamp(),
+      });
     }
   }
 
   Future<void> _openExistingSpot(MapSpot spot) async {
     final bool? visitedSpot = await showDialog<bool>(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(spot.name.isNotEmpty ? spot.name : "Unnamed Spot"),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Description: ${spot.description}"),
-                const SizedBox(height: 10),
-                Text("Rating: ${spot.rating} / 5"),
-                const SizedBox(height: 10),
-                Text("Tags: ${spot.tags.join(', ')}"),
-                const SizedBox(height: 20),
-                const Text("Have you visited this spot?"),
-              ],
-            ),
-          ),
-
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("Not yet"),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text("I have!"),
-            ),
-          ],
-        );
-      },
+      builder: (BuildContext context) => ExistingSpotDialog(spot: spot),
     );
 
     if (visitedSpot == true) {
@@ -334,26 +190,59 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Map")),
+      appBar: AppBar(
+        // Make the title the search bar
+        title: TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: "Search for names or tags...",
+            border: InputBorder.none, // Removes underline
+            suffixIcon:  _searchQuery.isNotEmpty
+              ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() {
+                    _searchQuery = "";
+                  });
+                },
+              )
+            : const Icon(Icons.search),
+          ),
+          onChanged: (value){
+            setState(() {
+              _searchQuery = value.toLowerCase();
+            });
+          },
+        ),
+      ),
       drawer: const Sidebar(),
       
       // Wrapping the map in a StreamBuilder fixes the Windows UI Freezing
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection("spots").snapshots(),
         builder: (context, snapshot) {
-          
           // Show a loader while fetching to prevent locking the screen
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Safely parse the spots from the stream with strict typing
-          final List<MapSpot> currentSpots = snapshot.hasData 
-              ? snapshot.data!.docs.map<MapSpot>((doc) => MapSpot.fromFirestore(doc)).toList() 
-              : <MapSpot>[];
+          final List<MapSpot> allSpots = snapshot.hasData
+            ? snapshot.data!.docs.map<MapSpot>((doc) => MapSpot.fromFirestore(doc)).toList()
+            : <MapSpot>[];
 
-          // Keep our local variable updated for the distance checker
-          _spots = currentSpots;
+          // Filter spots based on search query
+          final List<MapSpot> filteredSpots = allSpots.where((spot) {
+            if (_searchQuery.isEmpty) return true;
+
+            final nameMatches = spot.name.toLowerCase().contains(_searchQuery);
+            final tagMatches = spot.tags.any((tag) => tag.toLowerCase().contains(_searchQuery));
+
+            return nameMatches || tagMatches;
+          }).toList();
+
+          // Assign just filtered spots to global var for map taps
+          _spots = filteredSpots;
 
           return FlutterMap(
             mapController: _mapController,
@@ -376,7 +265,7 @@ class _MapScreenState extends State<MapScreen> {
                 ],
               ),
               MarkerLayer(
-                markers: currentSpots.map((spot) {
+                markers: filteredSpots.map((spot) {
                   return Marker(
                     point: spot.point,
                     width: 80,
@@ -393,6 +282,234 @@ class _MapScreenState extends State<MapScreen> {
           );
         }
       ),
+    );
+  }
+}
+
+  // ===========================
+  // Extracted Dialog Widgets
+  // This means we can move display info out of the _enterSpotDetails and such
+  // ===========================
+
+class ConfirmNewSpotDialog extends StatelessWidget{
+  const ConfirmNewSpotDialog({super.key});
+
+  @override
+  Widget build (BuildContext context){
+    return AlertDialog(
+      title: const Text("New Spot"),
+      content: const Text("Open a new Spot Here?"),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text("No"),
+          ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text("Yes"),
+        ),
+      ],
+    );
+  }
+}
+
+class ExistingSpotDialog extends StatelessWidget{
+  final MapSpot spot;
+
+  const ExistingSpotDialog({super.key, required this.spot});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(spot.name.isNotEmpty ? spot.name : "Unnamed Spot"),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Description: ${spot.description}"),
+            const SizedBox(height: 10),
+            Text("Rating: ${spot.rating} / 5"),
+            const SizedBox(height: 10),
+            Text("Tags: ${spot.tags.join(', ')}"),
+            const SizedBox(height: 20),
+            const Text("Have you visited this spot?"),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text("Not yet"),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text("I have!"),
+        ),
+      ],
+    );
+  }
+}
+
+class NewSpotFormDialog extends StatefulWidget {
+  const NewSpotFormDialog({super.key});
+
+  @override
+  State<NewSpotFormDialog> createState() => _NewSpotFormDialogState();
+}
+
+class _NewSpotFormDialogState extends State<NewSpotFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  
+  double _selectedRating = 0.0;
+
+  final List<String> _availableTags = [
+    'Walking', 'Nature', 'Picnic', 'Hiking', 'Sunsets', 'Sunrises', 
+    'Star gazing', 'Bird watching', 'Wildlife areas', 'Wild swimming', 
+    'Trail running', 'Climbing', 'Cycling', 'Scrambling', 'Camping', 
+    'Van living', 'Wild camping', 'Beaches', 'Lakes', 'Woods', 
+    'Rivers', 'Waterfalls', 'Amenities'
+  ];
+  
+  final List<String> _selectedTags = [];
+
+  @override
+  void dispose() {
+    // Always dispose controllers to prevent memory leaks!
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  void _submitForm() {
+    if (_formKey.currentState!.validate()) {
+      // Parse the tags cleanly here
+      if (_selectedTags.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please select at least one tag")),
+        );
+        return;
+      }
+
+      // Return the completed data object back to the main screen
+      final formData = _SpotFormData(
+        name: _nameController.text.trim(),
+        description: _descriptionController.text.trim(),
+        rating: _selectedRating,
+        tags: _selectedTags,
+      );
+      
+      Navigator.pop(context, formData);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("New Spot Details"),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: "Name*"),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) return 'Please enter a name';
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(labelText: "Description"),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) return 'Please enter a description';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              
+              const Text("Rating", style: TextStyle(fontSize: 12, color: Colors.black54)),
+              
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: List.generate(5, (index) {
+                  IconData iconData;
+                  if (_selectedRating >= index + 1.0) {
+                    iconData = Icons.star;
+                  } else if (_selectedRating >= index + 0.5) {
+                    iconData = Icons.star_half;
+                  } else {
+                    iconData = Icons.star_border;
+                  }
+
+                  return GestureDetector(
+                    onTapDown: (TapDownDetails details) {
+                      // Standard setState is much cleaner here than StatefulBuilder
+                      setState(() {
+                        if (details.localPosition.dx < 18) {
+                          _selectedRating = index + 0.5;
+                        } else {
+                          _selectedRating = index + 1.0;
+                        }
+                      });
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 4.0),
+                      child: Icon(iconData, color: Colors.amber, size: 36),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 8),
+              
+              const Text("Tags*", style: TextStyle(fontSize: 12, color: Colors.black54)),
+              const SizedBox(height: 8),
+
+              // Tag Selection
+              Wrap(
+                spacing: 8, // Horizontal spacing
+                runSpacing: 4.0, // Vertical spacing
+
+                children: _availableTags.map((tag) {
+                  final isSelected = _selectedTags.contains(tag);
+                  return FilterChip(
+                    label: Text(tag),
+                    selected: isSelected,
+                    selectedColor: Colors.deepPurple.withOpacity(0.2),
+                    checkmarkColor: Colors.deepPurple,
+                    onSelected: (bool selected){
+                      setState(() {
+                        if (selected){
+                          _selectedTags.add(tag);
+                        }
+                        else{
+                          _selectedTags.remove(tag);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, null), // Return null on cancel
+          child: const Text("Cancel"),
+        ),
+        TextButton(
+          onPressed: _submitForm,
+          child: const Text("Save"),
+        ),
+      ],
     );
   }
 }
